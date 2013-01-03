@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+  <script type="text/javascript">
+    window.onload = init;
+    var context;
+    var bufferLoader;
+    var gainNode1, gainNode2;
+    
+    function init() {
+      context = new webkitAudioContext();
+      
+      bufferLoader = new BufferLoader(
+        context,
+        [
+          'sounds/blackbird.ogg',
+          'sounds/robin.ogg',
+        ],
+        finishedLoading
+        );
+      bufferLoader.load();
+    }
+    
+    function finishedLoading(bufferList) {
+      var source1 = context.createBufferSource();
+      var source2 = context.createBufferSource();
+    
+      source1.buffer = bufferList[0];
+      source2.buffer = bufferList[1];
+      
+      source1.loop = true;
+      source2.loop = true;
+      
+      gainNode1 = context.createGainNode();
+      source1.connect(gainNode1);
+      gainNode1.connect(context.destination);
+      
+      gainNode2 = context.createGainNode();
+      source2.connect(gainNode2);
+      gainNode2.connect(context.destination);
+      
+      //gainNode1.gain.value = 0;
+      
+      source1.noteOn(0);
+      source2.noteOn(0);
+      
+    }
+    
+    function BufferLoader(context, urlList, callback) {
+      this.context = context;
+      this.urlList = urlList;
+      this.onload = callback;
+      this.bufferList = new Array();
+      this.loadCount = 0;
+    }
+
+    BufferLoader.prototype.loadBuffer = function(url, index) {
+      // Load buffer asynchronously
+      var request = new XMLHttpRequest();
+      request.open("GET", url, true);
+      request.responseType = "arraybuffer";
+
+      var loader = this;
+
+      request.onload = function() {
+        // Asynchronously decode the audio file data in request.response
+        loader.context.decodeAudioData(
+          request.response,
+          function(buffer) {
+            if (!buffer) {
+              alert('error decoding file data: ' + url);
+              return;
+            }
+            loader.bufferList[index] = buffer;
+            if (++loader.loadCount == loader.urlList.length)
+              loader.onload(loader.bufferList);
+          },
+          function(error) {
+            console.error('decodeAudioData error', error);
+          }
+        );
+      }
+
+      request.onerror = function() {
+        alert('BufferLoader: XHR error');
+      }
+
+      request.send();
+    }
+
+    BufferLoader.prototype.load = function() {
+      for (var i = 0; i < this.urlList.length; ++i)
+      this.loadBuffer(this.urlList[i], i);
+    }
+
+
+  </script>
+</head>
+<body>
+<p>Audio Walk</p>
+</body>
+</html>
